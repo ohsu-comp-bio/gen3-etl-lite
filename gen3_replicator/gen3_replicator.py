@@ -59,7 +59,7 @@ class ReplicatingConsumer(object):
             del self.pending[deletable[0]]
         # process them
         for k, replication_record in delete_from_pending:
-            print(replication_record, file=sys.stderr)
+            print('expired_records {} {} {}'.format(replication_record.action, replication_record.clazz.label, replication_record.key), file=sys.stderr)
             yield replication_record
 
 
@@ -76,19 +76,23 @@ def elastic_worker(elastic_q):
     def read_queue():
         flattened = elastic_q.get()
         if flattened:
-            print(flattened, file=sys.stderr)
+            _op_type = 'index'
+            _index = flattened['_index']
+            _type = flattened['_index']
+            del flattened['_index']
             bulk_input =  {
                 # delete records won't have a payload that indicates project_id, use wildcard
                 # '_index': '{}_{}'.format(_finditem(flattened, 'project_id', '*'), flattened['label']),
-                '_index': flattened['label'],
-                '_type': '_doc',
+                '_index': _index,
+                '_type': _type,
                 '_id': flattened['node_id'],
                 '_source': flattened
             }
             # opcode defaults to index
             if 'is_delete' in flattened:
                 bulk_input['_op_type'] = 'delete'
-                print(bulk_input, file=sys.stderr)
+                _op_type = 'delete'
+            print('bulk_input {} {}.{} {}'.format(_op_type, bulk_input['_index'], bulk_input['_type'],  bulk_input['_id']), file=sys.stderr)
             yield bulk_input
 
     def _finditem(obj, key, default):
@@ -104,7 +108,7 @@ def elastic_worker(elastic_q):
         try:
             bulk_upsert(read_queue)
         except Exception as e:
-            print(e, file=sys.stderr)
+            print('bulk_upsert error {}'.format(str(e)), file=sys.stderr)
 
 
 
@@ -113,6 +117,8 @@ def main():
 
     # connect to graph, get model objects
     graph, models, observable_nodes  = graph_connect()
+
+    print('Observing all changes to nodes {}'.format(observable_nodes.keys()), file=sys.stderr)
 
     # connect to db, get stream of replication events
     cur, conn = replication_helper.replication_cursor()

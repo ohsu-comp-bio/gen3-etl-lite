@@ -10,8 +10,6 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-
-
 DEFAULT_CREDENTIALS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'credentials.json')
 DEFAULT_HOST = 'localhost'
 DEFAULT_ENDPOINT = 'https://{}'.format(DEFAULT_HOST)
