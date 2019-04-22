@@ -10,10 +10,10 @@ echo "esproxy-service is available"
 # writes default template - all strings are considered keywords
 curl -X PUT -H "Content-Type: application/json"  http://esproxy-service:9200/_template/template_1 -d '
 {
-  "index_patterns" : ["*"],
+  "index_patterns" : ["biospecimen", "data_file"],
   "order" : 0,
   "mappings": {
-    "_doc": {
+    "_default_": {
       "dynamic_templates": [
         {
           "strings_as_keywords": {

@@ -1,4 +1,5 @@
 """Connects to gen3 graph after reading config."""
+from __future__ import print_function
 import datamodelutils
 from dictionaryutils import DataDictionary, dictionary
 from gdcdictionary import gdcdictionary
@@ -8,20 +9,7 @@ from psqlgraph import PsqlGraphDriver
 from sqlalchemy import * # noqa
 from config_helper import load_json
 import inspect
-
-
-def traverse_down(node, node_callback):
-    """Recursively process the node using node_callback(node)."""
-    node_callback(node)
-    for e in node.edges_in:
-        traverse_down(e.src, node_callback)
-
-
-def traverse_up(node, node_callback):
-    """Recursively process the node using node_callback(node)."""
-    node_callback(node)
-    for e in node.edges_out:
-        traverse_up(e.dst, node_callback)
+from flattener import flatten
 
 
 def graph_connect():
@@ -58,40 +46,9 @@ def observable_nodes(dictionary, models):
 
     indexes['aliquots'] = {'aliquot': dictionary.schema['aliquot']}
     indexes['aliquots']['aliquot']['table_name'] = my_models['aliquot']
-
+    
     return indexes
 
-
-def flatten(graph, replication_record, observable_nodes):
-    """Fetch node from replication record, traverse it, flatten to an object."""
-    flat = {}
-    print(replication_record)
-    if replication_record.action == 'delete':
-        flat['node_id'] = replication_record.key
-        flat['is_delete'] = True
-        flat['label'] = replication_record.clazz.label
-        return flat
-
-    def flatten_node(node):
-        """Replicate the node."""
-        if 'node_id' not in flat:
-            flat['node_id'] = node.node_id
-            flat['label'] = node.label
-            for k in node.properties.keys():
-                flat[k] = node.properties[k]
-            return
-        parent =  {}
-        parent['node_id'] = node.node_id
-        parent['label'] = node.label
-        for k in node.properties.keys():
-            parent[k] = node.properties[k]
-        flat[node.label] = parent
-
-    with graph.session_scope():
-        print(replication_record.clazz, replication_record.key)
-        traverse_up(graph.nodes(replication_record.clazz).ids(replication_record.key).one(), flatten_node)
-
-    return flat
 
 def db_credentials():
     """Load creds and returns dict of postgres keyword arguments."""

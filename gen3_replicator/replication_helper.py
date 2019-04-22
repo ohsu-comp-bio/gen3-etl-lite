@@ -35,7 +35,7 @@ def start_replication(cur, slot_name=DEFAULT_SLOT_NAME, observable_nodes=None):
                 table_names.append(observable_nodes[k][k2]['table_name'])
             # add schema name
         replication_parms['options'] = {'add-tables': ','.join(['*.{}'.format(tn) for tn in table_names])}
-    print(replication_parms, file=sys.stderr)
+    print('Started replication {}'.format(replication_parms), file=sys.stderr)
     try:
         cur.start_replication(**replication_parms)
     except psycopg2.ProgrammingError:
