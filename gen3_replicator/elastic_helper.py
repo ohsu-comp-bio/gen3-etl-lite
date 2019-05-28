@@ -1,15 +1,25 @@
 """Manage elasticsearch."""
 
 import os
+import ssl
+from elasticsearch.connection import create_ssl_context
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import Search
 from elasticsearch.helpers import bulk
+import urllib3
 
-ELASTIC_HOST = os.environ.get('ELASTIC_HOST', "http://esproxy-service")
 
-def bulk_upsert(document_generator, elastic_host=ELASTIC_HOST):
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL', "http://esproxy-service")
+
+def bulk_upsert(document_generator, elasticsearch_url=ELASTICSEARCH_URL):
     """Connects to ELASTIC_HOST, reads elastic documents from generator,  writes objects to elastic."""
-    client = Elasticsearch([elastic_host])
+    # client = Elasticsearch([elasticsearch_url])
+    ssl_context = create_ssl_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+    client = Elasticsearch( os.getenv('ELASTICSEARCH_URL'), ssl_context=ssl_context)
     bulk(client,
         (d for d in document_generator()),
         request_timeout=120)

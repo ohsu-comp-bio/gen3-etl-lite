@@ -59,14 +59,27 @@ class ReplicatingConsumer(object):
             del self.pending[deletable[0]]
         # process them
         for k, replication_record in delete_from_pending:
-            print('expired_records {} {} {}'.format(replication_record.action, replication_record.clazz.label, replication_record.key), file=sys.stderr)
+            #print('expired_records {} {} {}'.format(replication_record.action, replication_record.clazz.label, replication_record.key), file=sys.stderr)
             yield replication_record
+
+
+def get_index(observable_nodes, label):
+    """Returns the category of the label."""
+    for k in observable_nodes:
+        if label in observable_nodes[k]:
+            return observable_nodes[k][label]['category']
 
 
 def query_worker(replicating_consumer, graph, elastic_q, observable_nodes, sleep=1):
     """Transform and write expired records to elastic q."""
     while True:
         for expired_record in replicating_consumer.expired_records():
+            index = get_index(observable_nodes, expired_record.clazz.label)
+            flattened_node = flatten_delete(expired_record, index)
+            if not flattened_node:
+                with graph.session_scope():
+                    flattened_node = flatten(graph.nodes(expired_record.clazz).ids(expired_record.key).one())
+            flattened_node['_index'] = index
             elastic_q.put(flatten(graph, expired_record, observable_nodes))
         time.sleep(sleep)
 
@@ -92,7 +105,7 @@ def elastic_worker(elastic_q):
             if 'is_delete' in flattened:
                 bulk_input['_op_type'] = 'delete'
                 _op_type = 'delete'
-            print('bulk_input {} {}.{} {}'.format(_op_type, bulk_input['_index'], bulk_input['_type'],  bulk_input['_id']), file=sys.stderr)
+            # print('bulk_input {} {}.{} {}'.format(_op_type, bulk_input['_index'], bulk_input['_type'],  bulk_input['_id']), file=sys.stderr)
             yield bulk_input
 
     def _finditem(obj, key, default):

@@ -3,13 +3,11 @@ from __future__ import print_function
 import datamodelutils
 from dictionaryutils import DataDictionary, dictionary
 from gdcdictionary import gdcdictionary
-from gdcdatamodel import models, validators
 import os
 from psqlgraph import PsqlGraphDriver
 from sqlalchemy import * # noqa
 from config_helper import load_json
 import inspect
-from flattener import flatten
 
 
 def graph_connect():
@@ -17,12 +15,18 @@ def graph_connect():
     if ('DICTIONARY_URL' in os.environ):
         url = os.environ['DICTIONARY_URL']
         datadictionary = DataDictionary(url=url)
+        print('created datadictionary from url')
     elif ('PATH_TO_SCHEMA_DIR' in os.environ):
         datadictionary = DataDictionary(root_dir=os.environ['PATH_TO_SCHEMA_DIR'])
+        print('created datadictionary from schema_dir')
     else:
         datadictionary = gdcdictionary.gdcdictionary
-
+        print('created datadictionary from default')
     dictionary.init(datadictionary)
+    # Always import gdcdatamodel after dictionary has been initialized.
+    # Creates a singleton for life of python session.
+    # Required for backward compatibility.
+    from gdcdatamodel import models, validators
     datamodelutils.validators.init(validators)
     datamodelutils.models.init(models)
     graph = PsqlGraphDriver(**db_credentials())
@@ -41,12 +45,14 @@ def observable_nodes(dictionary, models):
     for t in file_tuples:
         whitelist_nodes[t[0]] = t[1]
         whitelist_nodes[t[0]]['table_name'] = my_models[t[0]]
-
     indexes['files'] = whitelist_nodes
-
     indexes['aliquots'] = {'aliquot': dictionary.schema['aliquot']}
     indexes['aliquots']['aliquot']['table_name'] = my_models['aliquot']
-    
+
+    indexes['surveys'] = {'hop_survey': dictionary.schema['hop_survey']}
+    indexes['surveys']['hop_survey']['table_name'] = my_models['hop_survey']
+    # index name read from category
+    indexes['surveys']['hop_survey']['category'] = 'survey'
     return indexes
 
 

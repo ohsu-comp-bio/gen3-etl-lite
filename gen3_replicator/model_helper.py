@@ -4,6 +4,7 @@ import json
 import inspect
 from datetime import datetime
 from collections import namedtuple
+from config_helper import load_json
 
 ReplicationRecord = namedtuple('ReplicationRecord', ['arrival_time', 'schema', 'table', 'action', 'key', 'keys', 'is_node', 'is_edge', 'clazz'])
 
@@ -56,3 +57,18 @@ class ModelMapper():
                 clazz = self.edges[table]
             replication_record = ReplicationRecord(*(arrival_time, schema, table, action, key, keys, is_node, is_edge, clazz))
             yield replication_record
+
+
+def name(object):
+    """Returns the name of a given object ala rails' :name."""
+    alias = get_name_alias(object)
+    return object[alias]
+
+NAME_ALIASES = load_json('name_aliases.json')
+
+def get_name_alias(object):
+    """Returns the attribute that contains human readable text."""
+    t = object.get('type', None)
+    if t in NAME_ALIASES:
+        return NAME_ALIASES[t]
+    return 'submitter_id'
