@@ -1,4 +1,4 @@
-"""Usefule helpers."""
+"""Useful helpers."""
 import json
 import os
 from datetime import date, datetime
