@@ -15,11 +15,15 @@ ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL', "http://esproxy-service"
 
 def bulk_upsert(document_generator, elasticsearch_url=ELASTICSEARCH_URL):
     """Connects to ELASTIC_HOST, reads elastic documents from generator,  writes objects to elastic."""
+    client = connect()
+    bulk(client,
+        (d for d in document_generator()),
+        request_timeout=120)
+
+
+def connect(elasticsearch_url=ELASTICSEARCH_URL):
     # client = Elasticsearch([elasticsearch_url])
     ssl_context = create_ssl_context()
     ssl_context.check_hostname = False
     ssl_context.verify_mode = ssl.CERT_NONE
-    client = Elasticsearch( os.getenv('ELASTICSEARCH_URL'), ssl_context=ssl_context)
-    bulk(client,
-        (d for d in document_generator()),
-        request_timeout=120)
+    return Elasticsearch(elasticsearch_url, ssl_context=ssl_context)

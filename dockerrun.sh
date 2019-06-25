@@ -10,7 +10,7 @@ echo "esproxy-service is available"
 # writes default template - all strings are considered keywords
 curl -k -X PUT -H "Content-Type: application/json"  $ELASTICSEARCH_URL/_template/template_1 -d '
 {
-  "index_patterns" : ["biospecimen", "data_file", "survey"],
+  "index_patterns" : ["biospecimen", "data_file", "survey", "case"],
   "order" : 0,
   "mappings": {
     "_default_": {
@@ -18,6 +18,14 @@ curl -k -X PUT -H "Content-Type: application/json"  $ELASTICSEARCH_URL/_template
         {
           "strings_as_keywords": {
             "match_mapping_type": "string",
+            "mapping": {
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "sample_Box_as_string": {
+            "path_match":   "sample.Box",
             "mapping": {
               "type": "keyword"
             }

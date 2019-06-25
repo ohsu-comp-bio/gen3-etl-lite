@@ -45,13 +45,15 @@ def query(graph, observable_nodes, model_mapper, sleep=100):
         with graph.session_scope() as session:
             for k in observable_nodes:
                 for label in observable_nodes[k]:
-                    flattened_count = 0
                     index = get_index(observable_nodes, label)
                     last_date = state.get(label, LAST_DATE)
                     print(label, last_date)
+                    most_recent_created = last_date
                     # table_name = observable_nodes[k][label]['table_name']
                     for q  in QUERIES[label]:
+                        flattened_count = 0
                         q = q.replace('?',"'{}'".format(last_date))
+                        print(q)
                         column_names = {}
                         flattened_keys = {}
                         for r in session.execute(q):
@@ -60,10 +62,11 @@ def query(graph, observable_nodes, model_mapper, sleep=100):
                             flattened_count += 1
                             flattened['_index'] = index
                             yield(flattened)
-                            last_date = r[1]
-                    state[label] = last_date
+                            most_recent_created = r[1]
+                        print('{} wrote {} flattened_node(s) {}'.format(label, flattened_count, last_date))
+
+                    state[label] = most_recent_created
                     save_state(state)
-                    print('{} wrote {} flattened_node(s) {}'.format(label, flattened_count, last_date))
                     sys.stdout.flush()
         print('sleep {}'.format(last_date))
         time.sleep(sleep)
