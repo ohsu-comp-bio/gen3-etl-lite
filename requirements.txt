@@ -1,5 +1,5 @@
 # standard libs
-PyYAML==3.13
+PyYAML==5.4
 requests==2.20.0
 pytest
 # utils
